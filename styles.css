@@ -324,6 +324,19 @@ select,
 
 select {
   min-width: 240px;
+  color: #e8f7ff;
+  color-scheme: dark;
+}
+
+select option,
+select optgroup {
+  background-color: #071822;
+  color: #e8f7ff;
+}
+
+select option:checked {
+  background-color: #0b5f73;
+  color: #ffffff;
 }
 
 .view {
