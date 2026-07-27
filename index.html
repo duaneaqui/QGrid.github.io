@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>R/S QGrid Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <main class="stage-shell" data-variant="R" aria-live="polite">
+      <div class="system-bg" id="systemBg" aria-hidden="true">
+        <div class="system-bg-layer is-shown" id="systemBgA"></div>
+        <div class="system-bg-layer" id="systemBgB"></div>
+      </div>
+      <div class="scan-vignette" aria-hidden="true"></div>
+      <canvas id="fieldCanvas" class="field-canvas" aria-hidden="true"></canvas>
+      <section class="deck-stage" id="deckStage">
+        <div class="hud-row">
+          <div>
+            <p class="eyebrow">QGrid Simulator</p>
+            <h1 id="systemTitle">Cardiovascular System</h1>
+          </div>
+          <div class="hud-controls" id="hudControls">
+            <button class="dissect-launch" id="dissectLaunch" type="button">Dissecting the NCLEX</button>
+            <label class="file-import">
+              <input id="sheetInput" type="file" accept=".xlsx,.xls,.csv,.json" />
+              <span>Import Sheet</span>
+            </label>
+            <select id="systemSelect" aria-label="Body system"></select>
+          </div>
+        </div>
+
+        <section id="dissectView" class="dissect-view view" aria-hidden="true">
+          <div class="dissect-fx" aria-hidden="true">
+            <span class="dissect-orb dissect-orb-a"></span>
+            <span class="dissect-orb dissect-orb-b"></span>
+            <span class="dissect-beam"></span>
+            <span class="dissect-scan" id="dissectScan"></span>
+            <span class="dissect-vignette"></span>
+          </div>
+
+          <div class="dissect-stage">
+            <header class="dissect-hero">
+              <h2 id="dissectTitle">Dissecting the NCLEX</h2>
+            </header>
+
+            <article class="dissect-panel" id="dissectPanel">
+              <div class="dissect-panel-frame" aria-hidden="true"></div>
+              <div class="dissect-panel-sheen" aria-hidden="true"></div>
+              <div class="dissect-panel-sweep" aria-hidden="true"></div>
+
+              <p class="dissect-label">Question</p>
+              <h3 class="dissect-stem" id="dissectStem">
+                <span id="dissectStemText"></span><span class="dissect-caret" id="dissectCaret" aria-hidden="true"></span>
+              </h3>
+
+              <ol class="dissect-choices" id="dissectChoices"></ol>
+
+              <div class="dissect-answer" id="dissectAnswer" aria-hidden="true">
+                <span class="dissect-answer-kicker">Correct Answer</span>
+                <strong id="dissectAnswerText"></strong>
+              </div>
+            </article>
+
+            <button class="dissect-back" id="dissectBack" type="button">Back to QGrid</button>
+          </div>
+        </section>
+
+        <section id="homeView" class="home-view view is-active">
+          <div class="home-cluster">
+            <div class="node-track" id="nodeTrack"></div>
+            <div class="category-rail">
+              <button class="rs-diamond" id="variantToggle" type="button" data-variant="R" aria-label="Toggle R or S question version">
+                <span class="rs-diamond-flare" aria-hidden="true"></span>
+                <span class="rs-diamond-ring" aria-hidden="true"></span>
+                <span class="rs-diamond-overlay" aria-hidden="true"></span>
+                <span class="rs-diamond-glyph">
+                  <span id="variantLabel">R</span>
+                </span>
+              </button>
+              <div class="category-track">
+                <div class="category-tabs" id="categoryTabs"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="questionView" class="question-view view" aria-hidden="true">
+          <aside class="question-side">
+            <div class="hud-frame" aria-hidden="true"></div>
+            <div class="side-panel-overlay" aria-hidden="true"></div>
+
+            <div class="side-body">
+              <div class="side-brand">
+                <span class="side-brand-rail" aria-hidden="true"></span>
+                <button class="mini-logo" id="backHome" type="button" data-variant="R" aria-label="Back to grid">
+                  <span class="mini-logo-ring" aria-hidden="true"></span>
+                  <span class="mini-logo-sheen" aria-hidden="true"></span>
+                  <span class="mini-logo-glyph" id="miniVariant">R</span>
+                </button>
+                <span class="side-brand-rail" aria-hidden="true"></span>
+              </div>
+
+              <p class="side-kicker">Question</p>
+
+              <div class="question-count" id="questionCount" style="--q-progress: 0">
+                <span class="question-count-ring" aria-hidden="true"></span>
+                <strong id="sideNumber">01</strong>
+                <small id="sideTotal">/ 01</small>
+              </div>
+
+              <div class="side-process">
+                <span class="side-process-num" id="sideProcessNum">NODE 01</span>
+                <strong class="side-process-label" id="sideType">Assess</strong>
+              </div>
+
+              <div class="side-category" id="sideCategoryChip">
+                <span class="side-category-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M9 3h6"></path>
+                    <path d="M10 3v4l-5 9a3 3 0 0 0 2.6 4.5h8.8A3 3 0 0 0 19 16l-5-9V3"></path>
+                    <path d="M8.5 14h7"></path>
+                  </svg>
+                </span>
+                <b id="sideCategory">Patient Teaching</b>
+              </div>
+
+              <div class="side-spacer" aria-hidden="true">
+                <span class="side-spacer-line"></span>
+              </div>
+            </div>
+
+            <div class="side-progress">
+              <div class="progress-head">
+                <p class="progress-heading">Question Progress</p>
+                <strong id="progressText">0%</strong>
+              </div>
+              <div class="progress-meter">
+                <div class="progress-segments" id="progressSegments" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <article class="question-card" id="questionCard">
+            <div class="hud-frame" aria-hidden="true"></div>
+            <div class="diagnostic-frame" aria-hidden="true"></div>
+            <div class="card-topbar">
+              <div class="topbar-state">
+                <strong id="cardMode">Question State</strong>
+                <b>Simulation</b>
+              </div>
+            </div>
+            <div class="question-content">
+              <div class="question-main">
+                <div class="question-flow">
+                  <h2 id="questionStem"></h2>
+                  <div class="answer-block">
+                    <ol class="answers" id="answerList"></ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="ghost-button" id="prevQuestion" type="button">Previous</button>
+              <button class="primary-button" id="revealAnswer" type="button">Reveal Answer</button>
+              <button class="ghost-button" id="nextQuestion" type="button">Next</button>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+    <button class="hud-secret" id="hudSecret" type="button" aria-hidden="true" tabindex="-1"></button>
+  </body>
+</html>

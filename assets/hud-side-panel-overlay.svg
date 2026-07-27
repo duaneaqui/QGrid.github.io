@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 760" preserveAspectRatio="none" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="sideGlow" x1="140" y1="0" x2="140" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#62e9ff" stop-opacity="0.35"/>
+      <stop offset="0.5" stop-color="#62e9ff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#62e9ff" stop-opacity="0.28"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer chamfered frame -->
+  <path
+    stroke="url(#sideGlow)"
+    stroke-width="2"
+    vector-effect="non-scaling-stroke"
+    d="M28 10 H252 L270 28 V732 L252 750 H28 L10 732 V28 Z"
+  />
+  <path
+    stroke="rgba(98,233,255,0.45)"
+    stroke-width="1.25"
+    vector-effect="non-scaling-stroke"
+    d="M36 20 H244 L258 34 V726 L244 740 H36 L22 726 V34 Z"
+  />
+  <!-- Corner ticks -->
+  <g stroke="#62e9ff" stroke-width="2" stroke-linecap="square" vector-effect="non-scaling-stroke" opacity="0.9">
+    <path d="M28 48 V28 H48"/>
+    <path d="M232 28 H252 V48"/>
+    <path d="M28 712 V732 H48"/>
+    <path d="M232 732 H252 V712"/>
+  </g>
+  <!-- Mid edge ticks -->
+  <g stroke="rgba(98,233,255,0.55)" stroke-width="1.5" vector-effect="non-scaling-stroke">
+    <path d="M10 360 H20"/><path d="M10 400 H20"/>
+    <path d="M270 360 H260"/><path d="M270 400 H260"/>
+  </g>
+</svg>

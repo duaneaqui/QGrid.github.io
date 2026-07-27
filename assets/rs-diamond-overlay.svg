@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+  <!-- Transparent crystal facet overlay for R/S diamond -->
+  <defs>
+    <linearGradient id="facetShine" x1="18" y1="12" x2="96" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="0.38" stop-color="#9ef6ff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#62e9ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edgeGlow" x1="10" y1="60" x2="110" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#62e9ff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#d8fbff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#62e9ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="100" height="100" rx="2" stroke="url(#edgeGlow)" stroke-width="1.25" opacity="0.9"/>
+  <rect x="18" y="18" width="84" height="84" stroke="rgba(210,248,255,0.35)" stroke-width="1"/>
+  <path d="M22 58 L98 58" stroke="rgba(180,245,255,0.22)" stroke-width="1"/>
+  <path d="M58 22 L58 98" stroke="rgba(180,245,255,0.18)" stroke-width="1"/>
+  <path d="M26 26 L50 34 L34 50 Z" fill="url(#facetShine)" opacity="0.55"/>
+  <path d="M94 28 L78 42" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="86" cy="86" r="2.2" fill="rgba(180,245,255,0.55)"/>
+  <circle cx="34" cy="88" r="1.4" fill="rgba(255,255,255,0.4)"/>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" preserveAspectRatio="none" fill="none" aria-hidden="true">
+  <!-- Edge-hugging frame that stretches to any container shape -->
+  <path
+    stroke="#62e9ff"
+    stroke-width="3"
+    vector-effect="non-scaling-stroke"
+    d="M12 12 H1188 L1188 12 L1188 688 L12 688 Z"
+  />
+  <path
+    stroke="rgba(115,255,217,0.55)"
+    stroke-width="1.5"
+    vector-effect="non-scaling-stroke"
+    d="M24 24 H1176 V676 H24 Z"
+  />
+  <!-- Chamfer corners as short brackets -->
+  <g stroke="#62e9ff" stroke-width="2.5" stroke-linecap="square" vector-effect="non-scaling-stroke" opacity="0.95">
+    <path d="M12 48 V12 H48"/>
+    <path d="M1152 12 H1188 V48"/>
+    <path d="M12 652 V688 H48"/>
+    <path d="M1152 688 H1188 V652"/>
+  </g>
+  <!-- Mid ticks -->
+  <g stroke="rgba(98,233,255,0.75)" stroke-width="2" vector-effect="non-scaling-stroke">
+    <path d="M590 12 V22"/>
+    <path d="M610 12 V22"/>
+    <path d="M590 688 V678"/>
+    <path d="M610 688 V678"/>
+    <path d="M12 340 H22"/>
+    <path d="M12 360 H22"/>
+    <path d="M1188 340 H1178"/>
+    <path d="M1188 360 H1178"/>
+  </g>
+</svg>
