@@ -733,6 +733,10 @@ const els = {
   variantLabel: document.getElementById("variantLabel"),
   miniVariant: document.getElementById("miniVariant"),
   systemSelect: document.getElementById("systemSelect"),
+  systemPicker: document.getElementById("systemPicker"),
+  systemPickerTrigger: document.getElementById("systemPickerTrigger"),
+  systemPickerMenu: document.getElementById("systemPickerMenu"),
+  systemPickerLabel: document.getElementById("systemPickerLabel"),
   systemTitle: document.getElementById("systemTitle"),
   sheetInput: document.getElementById("sheetInput"),
   backHome: document.getElementById("backHome"),
@@ -786,6 +790,54 @@ function renderSystems() {
     .map((system) => `<option value="${system}">${system}</option>`)
     .join("");
   els.systemSelect.value = state.system;
+  syncSystemPicker();
+}
+
+function syncSystemPicker() {
+  if (els.systemPickerLabel) els.systemPickerLabel.textContent = state.system;
+  if (!els.systemPickerMenu) return;
+  els.systemPickerMenu.innerHTML = systems
+    .map((system) => {
+      const active = system === state.system ? "is-active" : "";
+      return `
+        <li role="none">
+          <button class="system-picker-option ${active}" type="button" role="option" data-system="${system}" aria-selected="${system === state.system}">
+            ${system}
+          </button>
+        </li>
+      `;
+    })
+    .join("");
+}
+
+function setSystemPickerOpen(open) {
+  if (!els.systemPicker || !els.systemPickerTrigger || !els.systemPickerMenu) return;
+  els.systemPicker.classList.toggle("is-open", open);
+  els.systemPickerTrigger.setAttribute("aria-expanded", String(open));
+  els.systemPickerMenu.hidden = !open;
+}
+
+function chooseSystem(system) {
+  if (!systems.includes(system) || system === state.system) {
+    setSystemPickerOpen(false);
+    return;
+  }
+  if (els.systemSelect) els.systemSelect.value = system;
+  setSystemPickerOpen(false);
+  applySystemChange(system);
+}
+
+function applySystemChange(system) {
+  resetTour();
+  state.system = system;
+  state.selectedAnswer = null;
+  state.answerVisible = false;
+  state.category = null;
+  setSystemBackground(true);
+  els.systemTitle.textContent = formatSystemTitle();
+  syncSystemPicker();
+  renderCategories();
+  selectFirstAvailable(true, { lockSystem: true, lockCategory: true, preferCategory: null });
 }
 
 function renderNodes() {
@@ -848,15 +900,28 @@ function bindEvents() {
   });
 
   els.systemSelect.addEventListener("change", () => {
-    resetTour();
-    state.system = els.systemSelect.value;
-    state.selectedAnswer = null;
-    state.answerVisible = false;
-    state.category = null;
-    setSystemBackground(true);
-    els.systemTitle.textContent = formatSystemTitle();
-    renderCategories();
-    selectFirstAvailable(true, { lockSystem: true, lockCategory: true, preferCategory: null });
+    applySystemChange(els.systemSelect.value);
+  });
+  els.systemPickerTrigger?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = !els.systemPicker?.classList.contains("is-open");
+    setSystemPickerOpen(open);
+  });
+  els.systemPickerMenu?.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-system]");
+    if (!option) return;
+    event.preventDefault();
+    chooseSystem(option.dataset.system);
+  });
+  document.addEventListener("click", (event) => {
+    if (!els.systemPicker?.classList.contains("is-open")) return;
+    if (event.target.closest("#systemPicker")) return;
+    setSystemPickerOpen(false);
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.systemPicker?.classList.contains("is-open")) {
+      setSystemPickerOpen(false);
+    }
   });
 
   els.backHome.addEventListener("click", () => {
@@ -1146,6 +1211,7 @@ function selectFirstAvailable(renderUi = true, options = {}) {
       }
       state.system = hit.system;
       if (els.systemSelect) els.systemSelect.value = state.system;
+      syncSystemPicker();
       if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
       setSystemBackground();
     }
@@ -1158,6 +1224,7 @@ function selectFirstAvailable(renderUi = true, options = {}) {
 
   if (lockSystem && els.systemSelect) {
     els.systemSelect.value = state.system;
+    syncSystemPicker();
   }
   if (lockVariant) updateVariantLabels();
 

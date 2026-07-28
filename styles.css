@@ -282,7 +282,7 @@ h1 {
 }
 
 .file-import span,
-select,
+.system-picker-trigger,
 .dissect-launch {
   display: inline-flex;
   align-items: center;
@@ -320,6 +320,93 @@ select,
 .stage-shell.is-dissecting .dissect-launch {
   background: linear-gradient(90deg, rgba(255, 200, 87, 0.22), rgba(10, 28, 42, 0.82));
   border-color: var(--amber);
+}
+
+.system-picker {
+  position: relative;
+  min-width: 240px;
+}
+
+.system-picker-trigger {
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.system-picker-trigger::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid rgba(232, 247, 255, 0.9);
+  flex: 0 0 auto;
+}
+
+.system-picker.is-open .system-picker-trigger::after {
+  transform: rotate(180deg);
+}
+
+.system-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  border: 1px solid rgba(98, 233, 255, 0.35);
+  border-left: 4px solid var(--cyan);
+  background:
+    linear-gradient(180deg, rgba(8, 28, 40, 0.98), rgba(3, 12, 20, 0.98));
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 24px rgba(45, 233, 255, 0.12);
+}
+
+.system-picker-menu[hidden] {
+  display: none;
+}
+
+.system-picker-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: #e8f7ff;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.system-picker-option:hover,
+.system-picker-option:focus-visible {
+  background: rgba(45, 233, 255, 0.16);
+  color: #ffffff;
+  outline: none;
+}
+
+.system-picker-option.is-active {
+  background: rgba(11, 95, 115, 0.95);
+  color: #ffffff;
+}
+
+.system-picker-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 select {
@@ -1738,6 +1825,7 @@ h2 {
   }
 
   .file-import span,
+  .system-picker-trigger,
   select {
     min-height: 34px;
     padding: 0 12px;
