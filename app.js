@@ -732,7 +732,6 @@ const els = {
   variantToggle: document.getElementById("variantToggle"),
   variantLabel: document.getElementById("variantLabel"),
   miniVariant: document.getElementById("miniVariant"),
-  systemSelect: document.getElementById("systemSelect"),
   systemPicker: document.getElementById("systemPicker"),
   systemPickerTrigger: document.getElementById("systemPickerTrigger"),
   systemPickerMenu: document.getElementById("systemPickerMenu"),
@@ -786,10 +785,6 @@ function init() {
 }
 
 function renderSystems() {
-  els.systemSelect.innerHTML = systems
-    .map((system) => `<option value="${system}">${system}</option>`)
-    .join("");
-  els.systemSelect.value = state.system;
   syncSystemPicker();
 }
 
@@ -822,7 +817,6 @@ function chooseSystem(system) {
     setSystemPickerOpen(false);
     return;
   }
-  if (els.systemSelect) els.systemSelect.value = system;
   setSystemPickerOpen(false);
   applySystemChange(system);
 }
@@ -899,9 +893,6 @@ function bindEvents() {
     flipVariant();
   });
 
-  els.systemSelect.addEventListener("change", () => {
-    applySystemChange(els.systemSelect.value);
-  });
   els.systemPickerTrigger?.addEventListener("click", (event) => {
     event.stopPropagation();
     const open = !els.systemPicker?.classList.contains("is-open");
@@ -917,11 +908,6 @@ function bindEvents() {
     if (!els.systemPicker?.classList.contains("is-open")) return;
     if (event.target.closest("#systemPicker")) return;
     setSystemPickerOpen(false);
-  });
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && els.systemPicker?.classList.contains("is-open")) {
-      setSystemPickerOpen(false);
-    }
   });
 
   els.backHome.addEventListener("click", () => {
@@ -959,6 +945,12 @@ function bindEvents() {
     toggleHudControls();
   });
   window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.systemPicker?.classList.contains("is-open")) {
+      event.preventDefault();
+      setSystemPickerOpen(false);
+      return;
+    }
+
     if (event.target?.closest?.("button, input, select, textarea, a")) return;
 
     if (
@@ -1210,7 +1202,6 @@ function selectFirstAvailable(renderUi = true, options = {}) {
         updateVariantLabels();
       }
       state.system = hit.system;
-      if (els.systemSelect) els.systemSelect.value = state.system;
       syncSystemPicker();
       if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
       setSystemBackground();
@@ -1222,8 +1213,7 @@ function selectFirstAvailable(renderUi = true, options = {}) {
   if (lockCategory) state.category = preferCategory;
   if (lockSystem) state.system = preferSystem;
 
-  if (lockSystem && els.systemSelect) {
-    els.systemSelect.value = state.system;
+  if (lockSystem) {
     syncSystemPicker();
   }
   if (lockVariant) updateVariantLabels();
