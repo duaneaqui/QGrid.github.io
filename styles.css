@@ -627,7 +627,7 @@ h1 {
 .category-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--cluster-gap);
   align-items: center;
   min-width: 0;
@@ -657,7 +657,7 @@ h1 {
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%),
     linear-gradient(90deg, rgba(4, 18, 28, 0.92), rgba(6, 28, 40, 0.9));
   color: var(--ink);
-  font-size: clamp(13px, 1.1vw, 17px);
+  font-size: clamp(11px, 0.95vw, 15px);
   font-weight: 800;
   cursor: pointer;
   text-transform: none;
@@ -710,8 +710,10 @@ h1 {
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--rs-core-a) 88%, transparent), color-mix(in srgb, var(--rs-core-b) 58%, transparent));
   color: #fff;
-  transform: rotate(45deg);
+  transform: perspective(720px) rotateX(0deg) rotateY(0deg) rotateZ(45deg);
+  transform-origin: 50% 50%;
   transform-style: preserve-3d;
+  will-change: transform, filter;
   cursor: pointer;
   overflow: visible;
   isolation: isolate;
@@ -721,11 +723,41 @@ h1 {
     0 0 56px color-mix(in srgb, var(--rs-accent) 42%, transparent),
     inset 0 0 28px rgba(98, 233, 255, 0.12);
   transition:
-    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
     background 320ms ease,
     box-shadow 320ms ease,
     border-color 320ms ease,
     filter 280ms ease;
+}
+
+.rs-diamond::before,
+.rs-diamond::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.rs-diamond::before {
+  inset: 3px;
+  z-index: 4;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background:
+    linear-gradient(125deg, rgba(255, 255, 255, 0.26), transparent 28% 67%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(90deg, transparent 42%, color-mix(in srgb, var(--rs-accent) 42%, #fff) 50%, transparent 58%);
+  background-size: 100% 100%, 240% 100%;
+  background-position: center, 120% 0;
+  opacity: 0.62;
+  transform: translateZ(8px);
+}
+
+.rs-diamond::after {
+  inset: 10px -14px -18px 10px;
+  z-index: -1;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  filter: blur(10px);
+  opacity: 0.42;
+  transform: translateZ(-12px) translate(8px, 10px);
 }
 
 .rs-diamond[data-variant="S"] {
@@ -738,7 +770,7 @@ h1 {
 
 .rs-diamond:hover,
 .rs-diamond:focus-visible {
-  transform: rotate(45deg) scale(1.06);
+  transform: perspective(720px) rotateX(-4deg) rotateY(7deg) rotateZ(45deg) scale(1.06);
   filter: brightness(1.1);
   box-shadow:
     0 0 0 6px rgba(255, 255, 255, 0.12),
@@ -765,6 +797,7 @@ h1 {
   border: 1px solid color-mix(in srgb, var(--rs-accent) 55%, #fff);
   box-shadow: inset 0 0 18px color-mix(in srgb, var(--rs-accent) 18%, transparent);
   opacity: 0.85;
+  transform: translateZ(5px);
 }
 
 .rs-diamond-overlay {
@@ -772,6 +805,7 @@ h1 {
   background: url("assets/rs-diamond-overlay.svg") center / cover no-repeat;
   opacity: 0.72;
   mix-blend-mode: screen;
+  transform: translateZ(7px);
 }
 
 .rs-diamond-flare {
@@ -785,7 +819,9 @@ h1 {
 .rs-diamond-glyph {
   display: grid;
   place-items: center;
-  transform: rotate(-45deg) translateZ(1px);
+  transform: translateZ(14px) rotateZ(-45deg);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 .rs-diamond-glyph span {
@@ -803,65 +839,100 @@ h1 {
 
 .rs-diamond.is-flipping {
   pointer-events: none;
-  animation: rsPrismFlip 640ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+  animation: rsPrismFlip 920ms cubic-bezier(0.22, 0.72, 0.16, 1) both;
 }
 
 .rs-diamond.is-flipping .rs-diamond-flare {
-  animation: rsFlareBurst 640ms ease-out both;
+  animation: rsFlareBurst 920ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .rs-diamond.is-flipping .rs-diamond-overlay {
-  animation: rsFacetSweep 640ms ease-out both;
+  animation: rsFacetSweep 920ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .rs-diamond.is-flipping .rs-diamond-glyph span {
-  animation: rsGlyphSwap 640ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+  animation: rsGlyphSwap 920ms cubic-bezier(0.22, 0.72, 0.16, 1) both;
+}
+
+.rs-diamond.is-flipping::before {
+  animation: rsGlassSweep 920ms cubic-bezier(0.22, 0.72, 0.16, 1) both;
+}
+
+.rs-diamond.is-flipping::after {
+  animation: rsDepthShadow 920ms cubic-bezier(0.22, 0.72, 0.16, 1) both;
 }
 
 @keyframes rsPrismFlip {
   0% {
-    transform: rotate(45deg) scale(1) rotateY(0deg);
-    filter: brightness(1);
+    transform: perspective(720px) rotateX(0deg) rotateY(0deg) rotateZ(45deg) scale(1);
+    filter: brightness(1) saturate(1);
   }
-  38% {
-    transform: rotate(45deg) scale(0.9) rotateY(92deg);
-    filter: brightness(1.55);
+  18% {
+    transform: perspective(720px) rotateX(-7deg) rotateY(58deg) rotateZ(43deg) scale(1.08);
+    filter: brightness(1.18) saturate(1.14);
   }
-  42% {
-    transform: rotate(45deg) scale(0.9) rotateY(92deg);
-    filter: brightness(1.7);
+  47% {
+    transform: perspective(720px) rotateX(2deg) rotateY(170deg) rotateZ(45deg) scale(0.94);
+    filter: brightness(1.82) saturate(1.35);
+  }
+  53% {
+    transform: perspective(720px) rotateX(2deg) rotateY(190deg) rotateZ(45deg) scale(0.94);
+    filter: brightness(1.9) saturate(1.4);
+  }
+  78% {
+    transform: perspective(720px) rotateX(5deg) rotateY(326deg) rotateZ(47deg) scale(1.05);
+    filter: brightness(1.16) saturate(1.12);
   }
   100% {
-    transform: rotate(45deg) scale(1) rotateY(0deg);
-    filter: brightness(1);
+    transform: perspective(720px) rotateX(0deg) rotateY(360deg) rotateZ(45deg) scale(1);
+    filter: brightness(1) saturate(1);
   }
 }
 
 @keyframes rsFlareBurst {
   0% { opacity: 0; transform: scale(0.4); }
-  32% { opacity: 0.85; transform: scale(1.05); }
-  70% { opacity: 0.35; transform: scale(1.35); }
-  100% { opacity: 0; transform: scale(1.55); }
+  42% { opacity: 0.42; transform: scale(0.9); }
+  52% { opacity: 0.95; transform: scale(1.18); }
+  76% { opacity: 0.2; transform: scale(1.48); }
+  100% { opacity: 0; transform: scale(1.72); }
 }
 
 @keyframes rsFacetSweep {
-  0% { opacity: 0.55; filter: brightness(1); }
-  40% { opacity: 1; filter: brightness(1.45); }
-  100% { opacity: 0.72; filter: brightness(1); }
+  0% { opacity: 0.62; filter: brightness(1); transform: translateZ(7px) scale(1); }
+  48% { opacity: 1; filter: brightness(1.9); transform: translateZ(18px) scale(1.05); }
+  100% { opacity: 0.72; filter: brightness(1); transform: translateZ(7px) scale(1); }
 }
 
 @keyframes rsGlyphSwap {
-  0% { opacity: 1; transform: scale(1); filter: blur(0); }
-  36% { opacity: 0; transform: scale(0.72) translateY(6px); filter: blur(4px); }
-  44% { opacity: 0; transform: scale(0.72) translateY(-6px); filter: blur(4px); }
-  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  0% { opacity: 1; transform: scale(1) translateX(0); filter: blur(0); }
+  38% { opacity: 0.85; transform: scale(0.92) translateX(-2px); filter: blur(0); }
+  48% { opacity: 0; transform: scaleX(0.08) scaleY(0.82) translateX(-8px); filter: blur(3px); }
+  52% { opacity: 0; transform: scaleX(0.08) scaleY(0.82) translateX(8px); filter: blur(3px); }
+  66% { opacity: 1; transform: scale(1.08) translateX(1px); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1) translateX(0); filter: blur(0); }
+}
+
+@keyframes rsGlassSweep {
+  0% { opacity: 0.52; background-position: center, 120% 0; }
+  38% { opacity: 0.82; }
+  52% { opacity: 1; background-position: center, -20% 0; }
+  100% { opacity: 0.62; background-position: center, -80% 0; }
+}
+
+@keyframes rsDepthShadow {
+  0%, 100% { opacity: 0.42; transform: translateZ(-12px) translate(8px, 10px) scale(1); }
+  24% { opacity: 0.58; transform: translateZ(-18px) translate(16px, 14px) scale(1.06); }
+  50% { opacity: 0.2; transform: translateZ(-22px) translate(2px, 14px) scaleX(0.28) scaleY(1.08); }
+  78% { opacity: 0.52; transform: translateZ(-16px) translate(-10px, 12px) scale(1.04); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rs-diamond.is-flipping,
   .rs-diamond.is-flipping .rs-diamond-flare,
   .rs-diamond.is-flipping .rs-diamond-overlay,
-  .rs-diamond.is-flipping .rs-diamond-glyph span {
+  .rs-diamond.is-flipping .rs-diamond-glyph span,
+  .rs-diamond.is-flipping::before,
+  .rs-diamond.is-flipping::after {
     animation: none !important;
   }
 }

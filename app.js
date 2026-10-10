@@ -6,7 +6,14 @@ const processes = [
   { id: "evaluate", number: "05", label: "Evaluate" },
 ];
 
-const categories = ["General", "Patient Teaching", "Medication", "Laboratory", "Delegation"];
+const categories = [
+  "General",
+  "Patient Teaching",
+  "Medication",
+  "Laboratory",
+  "Delegation",
+  "Prioritization",
+];
 const systems = [
   "Day 0",
   "Cardiovascular",
@@ -21,6 +28,13 @@ const systems = [
   "Integumentary",
   "Oncology",
   "Gynecology",
+  "Maternity",
+  "Pediatrics",
+  "Medical-Surgical",
+  "Critical Care",
+  "ER",
+  "Mental Health",
+  "Nurses Station",
 ];
 
 const systemBackgrounds = {
@@ -37,8 +51,13 @@ const systemBackgrounds = {
   Integumentary: "assets/body-systems/integumentary.png",
   Oncology: "assets/body-systems/oncology.png",
   Gynecology: "assets/body-systems/gynecology.png",
+  Maternity: "assets/body-systems/gynecology.png",
+  Pediatrics: "assets/body-systems/day-0.png",
+  "Medical-Surgical": "assets/body-systems/day-0.png",
+  "Critical Care": "assets/body-systems/icu.png",
   ICU: "assets/body-systems/icu.png",
   ER: "assets/body-systems/er.png",
+  "Mental Health": "assets/body-systems/neurology.png",
   "Nurses Station": "assets/body-systems/nurses-station.png",
 };
 
@@ -57,6 +76,13 @@ const revLNumSystems = [
   "Integumentary",
   "Oncology",
   "Gynecology",
+  "Maternity",
+  "Pediatrics",
+  "Medical-Surgical",
+  "Critical Care",
+  "ER",
+  "Mental Health",
+  "Nurses Station",
 ];
 
 const qgCategoryMap = {
@@ -69,6 +95,9 @@ const qgCategoryMap = {
   medication: "Medication",
   meds: "Medication",
   delegation: "Delegation",
+  prioritization: "Prioritization",
+  prioritize: "Prioritization",
+  priority: "Prioritization",
 };
 
 const qgLevelMap = {
@@ -1035,6 +1064,7 @@ function flipVariant() {
   if (!els.variantToggle || els.variantToggle.classList.contains("is-flipping")) return;
 
   const next = state.variant === "R" ? "S" : "R";
+  const flipDuration = 920;
   els.variantToggle.classList.add("is-flipping");
   els.variantToggle.disabled = true;
 
@@ -1044,16 +1074,18 @@ function flipVariant() {
     state.answerVisible = false;
     updateVariantLabels();
     selectFirstAvailable(true, { lockVariant: true, preferVariant: next });
-  }, 250);
+  }, flipDuration / 2);
 
   window.setTimeout(() => {
     els.variantToggle.classList.remove("is-flipping");
     els.variantToggle.disabled = false;
-  }, 660);
+  }, flipDuration);
 }
 
 function formatSystemTitle(system = state.system) {
-  return system === "Day 0" ? "Introducing the QGrid" : `${system} System`;
+  if (system === "Day 0") return "Introducing the QGrid";
+  if (system === "ER" || system === "Nurses Station" || system === "Critical Care") return system;
+  return `${system} System`;
 }
 
 function themeForQuestion(question) {
@@ -1130,30 +1162,39 @@ function setSystemBackground(animate = false, overrideImage = null) {
 }
 
 function filteredQuestions() {
-  return state.questions.filter(
-    (question) =>
-      normalized(question.process) === state.process &&
-      question.category === state.category &&
-      question.system === state.system &&
-      question.variant === state.variant
-  );
+  return state.questions
+    .filter(
+      (question) =>
+        normalized(question.process) === state.process &&
+        question.category === state.category &&
+        question.system === state.system &&
+        question.variant === state.variant
+    )
+    .slice()
+    .sort(compareQuestionOrder);
 }
 
 function processQuestions() {
-  return state.questions.filter(
-    (question) =>
-      normalized(question.process) === state.process &&
-      question.system === state.system &&
-      question.variant === state.variant
-  );
+  return state.questions
+    .filter(
+      (question) =>
+        normalized(question.process) === state.process &&
+        question.system === state.system &&
+        question.variant === state.variant
+    )
+    .slice()
+    .sort(compareQuestionOrder);
 }
 
 function processQuestionsAnyVariant() {
-  return state.questions.filter(
-    (question) =>
-      normalized(question.process) === state.process &&
-      question.system === state.system
-  );
+  return state.questions
+    .filter(
+      (question) =>
+        normalized(question.process) === state.process &&
+        question.system === state.system
+    )
+    .slice()
+    .sort(compareQuestionOrder);
 }
 
 function selectFirstAvailable(renderUi = true, options = {}) {
@@ -1484,8 +1525,34 @@ function resetTour() {
   }
 }
 
+function compareQuestionOrder(a, b) {
+  const revA = Number(a?.revLNum);
+  const revB = Number(b?.revLNum);
+  const safeRevA = Number.isFinite(revA) ? revA : Number.POSITIVE_INFINITY;
+  const safeRevB = Number.isFinite(revB) ? revB : Number.POSITIVE_INFINITY;
+  if (safeRevA !== safeRevB) return safeRevA - safeRevB;
+  return String(a?.id || "").localeCompare(String(b?.id || ""), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function sortQuestionBank(questions) {
+  const day0 = [];
+  const rest = [];
+  for (const question of questions || []) {
+    if (question.system === "Day 0") day0.push(question);
+    else rest.push(question);
+  }
+  rest.sort(compareQuestionOrder);
+  return [...day0, ...rest];
+}
+
 function buildTourGroups(system) {
-  const list = state.questions.filter((question) => question.system === system);
+  const list = state.questions
+    .filter((question) => question.system === system)
+    .slice()
+    .sort(compareQuestionOrder);
   const groups = [];
 
   list.forEach((question) => {
@@ -1572,12 +1639,12 @@ async function animateFlipToVariant(variant) {
 
   els.variantToggle.classList.add("is-flipping");
   els.variantToggle.disabled = true;
-  await wait(250);
+  await wait(460);
   state.variant = variant;
   state.selectedAnswer = null;
   state.answerVisible = false;
   updateVariantLabels();
-  await wait(420);
+  await wait(460);
   els.variantToggle.classList.remove("is-flipping");
   els.variantToggle.disabled = false;
 }
@@ -2268,10 +2335,26 @@ async function importQuestions(event) {
 
     incoming = incoming.filter((question) => question.stem);
     if (!incoming.length) throw new Error("No valid questions found in that file.");
+    incoming.sort(compareQuestionOrder);
 
-    state.questions = mergeQuestionBank(state.questions, incoming);
+    state.questions = sortQuestionBank(mergeQuestionBank(state.questions, incoming));
     state.answerVisible = false;
-    selectFirstAvailable();
+    resetTour();
+
+    const firstImported = incoming[0];
+    if (firstImported?.system && systems.includes(firstImported.system)) {
+      state.system = firstImported.system;
+      setSystemBackground(true);
+      if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
+      syncSystemPicker();
+    }
+
+    selectFirstAvailable(true, {
+      lockSystem: true,
+      lockCategory: true,
+      preferCategory: null,
+      preferProcess: normalized(firstImported?.process || "assess"),
+    });
     showView("home");
   } catch (error) {
     alert(error.message);
@@ -2331,9 +2414,12 @@ function normalizeRows(rows) {
       const correctIndex = correctIndexFrom(
         row.correct || row["Correct answer"] || row.answer || row["Correct Answer"]
       );
+      const revRaw = Number(row.revLNum ?? row.RevLNum ?? row["rev l num"]);
+      const revLNum = Number.isFinite(revRaw) ? revRaw : undefined;
 
       return {
         id: id ? String(id) : undefined,
+        revLNum,
         process,
         category,
         system,
@@ -2343,7 +2429,8 @@ function normalizeRows(rows) {
         correctIndex,
       };
     })
-    .filter((question) => question.stem);
+    .filter((question) => question.stem)
+    .sort(compareQuestionOrder);
 }
 
 function normalizeChoices(choices) {
