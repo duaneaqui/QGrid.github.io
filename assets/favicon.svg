@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="R/S QGrid Studio">
+  <defs>
+    <radialGradient id="bgGlow" cx="35%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#0b3140"/>
+      <stop offset="55%" stop-color="#071018"/>
+      <stop offset="100%" stop-color="#03070d"/>
+    </radialGradient>
+    <linearGradient id="diamondFill" x1="18%" y1="12%" x2="86%" y2="90%">
+      <stop offset="0%" stop-color="#10384a"/>
+      <stop offset="45%" stop-color="#0a1b28"/>
+      <stop offset="100%" stop-color="#0b5a70"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8fcff"/>
+      <stop offset="45%" stop-color="#62e9ff"/>
+      <stop offset="100%" stop-color="#73ffd9"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#bgGlow)"/>
+  <circle cx="32" cy="32" r="26" fill="rgba(98,233,255,0.08)"/>
+
+  <g transform="translate(32 32) rotate(45)" filter="url(#softGlow)">
+    <rect x="-16" y="-16" width="32" height="32" rx="3.5" fill="url(#diamondFill)" stroke="url(#edge)" stroke-width="2.4"/>
+    <rect x="-11.5" y="-11.5" width="23" height="23" rx="2.2" fill="none" stroke="rgba(98,233,255,0.55)" stroke-width="1"/>
+    <path d="M-8 0 H8 M0 -8 V8" stroke="rgba(232,252,255,0.28)" stroke-width="0.8"/>
+  </g>
+
+  <text
+    x="32"
+    y="37.5"
+    text-anchor="middle"
+    font-family="Bahnschrift, Arial Black, Segoe UI, sans-serif"
+    font-size="22"
+    font-weight="900"
+    fill="#ffffff"
+    style="letter-spacing:-0.5px"
+  >R</text>
+  <text
+    x="41.5"
+    y="26"
+    text-anchor="middle"
+    font-family="Bahnschrift, Arial Black, Segoe UI, sans-serif"
+    font-size="10"
+    font-weight="800"
+    fill="#73ffd9"
+    opacity="0.95"
+  >S</text>
+</svg>
