@@ -24,10 +24,18 @@
           </div>
           <div class="hud-controls" id="hudControls">
             <button class="dissect-launch" id="dissectLaunch" type="button">Dissecting the NCLEX</button>
-            <label class="file-import">
-              <input id="sheetInput" type="file" accept=".xlsx,.xls,.csv,.json" />
-              <span>Import Sheet</span>
-            </label>
+            <div class="file-import-wrap" id="fileImportWrap">
+              <label class="file-import" id="fileImport">
+                <input id="sheetInput" type="file" accept=".xlsx,.xls,.csv,.json" />
+                <span class="file-import-label">Import Sheet</span>
+              </label>
+              <div class="file-import-tip" id="fileImportTip" hidden>
+                <span class="file-import-name" id="fileImportName"></span>
+                <button class="file-import-clear" id="fileImportClear" type="button" aria-label="Remove imported sheet">
+                  ×
+                </button>
+              </div>
+            </div>
             <div class="system-picker" id="systemPicker">
               <button
                 class="system-picker-trigger"

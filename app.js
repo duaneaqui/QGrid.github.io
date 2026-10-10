@@ -706,6 +706,8 @@ const sampleQuestions = [
 
 
 
+const SHEET_STORAGE_KEY = "qgrid.importedSheet.v1";
+
 const state = {
   variant: "R",
   system: "Cardiovascular",
@@ -715,6 +717,9 @@ const state = {
   selectedAnswer: null,
   answerVisible: false,
   questions: [...day0Questions, ...sampleQuestions],
+  importedSheet: {
+    fileName: null,
+  },
   dissect: {
     active: false,
     index: 0,
@@ -727,6 +732,8 @@ const state = {
   tour: {
     active: false,
     busy: false,
+    ended: false,
+    runId: 0,
     groups: [],
     groupIndex: 0,
     qIndex: 0,
@@ -767,6 +774,10 @@ const els = {
   systemPickerLabel: document.getElementById("systemPickerLabel"),
   systemTitle: document.getElementById("systemTitle"),
   sheetInput: document.getElementById("sheetInput"),
+  fileImportWrap: document.getElementById("fileImportWrap"),
+  fileImportTip: document.getElementById("fileImportTip"),
+  fileImportName: document.getElementById("fileImportName"),
+  fileImportClear: document.getElementById("fileImportClear"),
   backHome: document.getElementById("backHome"),
   sideNumber: document.getElementById("sideNumber"),
   sideTotal: document.getElementById("sideTotal"),
@@ -799,8 +810,10 @@ function init() {
   renderCategories();
   setSystemBackground();
   bindEvents();
-  selectFirstAvailable(true, { lockCategory: true, preferCategory: null });
+  restoreImportedSheet();
+  selectFirstAvailable(true, { lockCategory: true, preferCategory: null, lockSystem: Boolean(state.importedSheet.fileName) });
   showView("home");
+  updateImportTipUI();
   if (debugMode && params.get("view") === "question") {
     showView("question");
   }
@@ -842,25 +855,41 @@ function setSystemPickerOpen(open) {
 }
 
 function chooseSystem(system) {
-  if (!systems.includes(system) || system === state.system) {
+  if (!systems.includes(system)) {
     setSystemPickerOpen(false);
+    releaseUiFocus();
     return;
   }
   setSystemPickerOpen(false);
-  applySystemChange(system);
+  if (system !== state.system) applySystemChange(system);
+  releaseUiFocus();
 }
 
 function applySystemChange(system) {
-  resetTour();
+  invalidateTour();
   state.system = system;
   state.selectedAnswer = null;
   state.answerVisible = false;
   state.category = null;
+  // Prefer the first process used by this system's Excel-ordered questions.
+  const lead = state.questions
+    .filter((question) => question.system === system)
+    .slice()
+    .sort(compareQuestionOrder)[0];
+  if (lead?.process) state.process = normalized(lead.process);
   setSystemBackground(true);
   els.systemTitle.textContent = formatSystemTitle();
   syncSystemPicker();
+  renderNodes();
   renderCategories();
-  selectFirstAvailable(true, { lockSystem: true, lockCategory: true, preferCategory: null });
+  selectFirstAvailable(true, {
+    lockSystem: true,
+    lockCategory: true,
+    preferCategory: null,
+    preferProcess: state.process,
+  });
+  showView("home");
+  releaseUiFocus();
 }
 
 function renderNodes() {
@@ -903,71 +932,96 @@ function bindEvents() {
     state.answerVisible = false;
     selectFirstAvailable(false, { preferProcess: processId });
     morphToQuestion(node);
+    releaseUiFocus();
   });
 
   els.categoryTabs.addEventListener("click", (event) => {
-    if (state.dissect.active || state.tour.busy) return;
+    if (state.dissect.active) return;
     const tab = event.target.closest(".category-tab");
     if (!tab) return;
-    resetTour();
+    invalidateTour();
     state.category = tab.dataset.category;
     state.selectedAnswer = null;
     state.answerVisible = false;
     selectFirstAvailable(true, { lockCategory: true });
+    showView("home");
+    releaseUiFocus();
   });
 
   els.variantToggle.addEventListener("click", () => {
     if (state.tour.busy) return;
-    resetTour();
+    invalidateTour();
     flipVariant();
+    releaseUiFocus();
   });
 
   els.systemPickerTrigger?.addEventListener("click", (event) => {
     event.stopPropagation();
     const open = !els.systemPicker?.classList.contains("is-open");
     setSystemPickerOpen(open);
+    if (!open) releaseUiFocus();
   });
   els.systemPickerMenu?.addEventListener("click", (event) => {
     const option = event.target.closest("[data-system]");
     if (!option) return;
     event.preventDefault();
+    event.stopPropagation();
     chooseSystem(option.dataset.system);
   });
   document.addEventListener("click", (event) => {
     if (!els.systemPicker?.classList.contains("is-open")) return;
     if (event.target.closest("#systemPicker")) return;
     setSystemPickerOpen(false);
+    releaseUiFocus();
   });
 
   els.backHome.addEventListener("click", () => {
-    resetTour();
-    returnHome();
+    exitToQGrid();
+    releaseUiFocus();
   });
-  els.answerList.addEventListener("click", selectAnswer);
+  els.answerList.addEventListener("click", (event) => {
+    selectAnswer(event);
+    releaseUiFocus();
+  });
   els.answerList.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     if (!event.target.closest(".answer-option")) return;
     event.preventDefault();
     selectAnswer(event);
+    releaseUiFocus();
   });
-  els.revealAnswer.addEventListener("click", revealAnswer);
+  els.revealAnswer.addEventListener("click", () => {
+    revealAnswer();
+    releaseUiFocus();
+  });
   els.nextQuestion.addEventListener("click", () => {
     if (state.tour.active) advanceTour();
     else moveQuestion(1);
+    releaseUiFocus();
   });
   els.prevQuestion.addEventListener("click", () => {
     if (state.tour.active) retreatTour();
     else moveQuestion(-1);
+    releaseUiFocus();
   });
   els.sheetInput.addEventListener("change", importQuestions);
+  els.fileImportClear?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearImportedSheet();
+  });
   els.dissectLaunch?.addEventListener("click", () => {
     if (state.dissect.active) closeDissectPage();
     else {
       resetTour();
       openDissectPage();
     }
+    releaseUiFocus();
   });
-  els.dissectBack?.addEventListener("click", closeDissectPage);
+  els.dissectBack?.addEventListener("click", () => {
+    closeDissectPage();
+    releaseUiFocus();
+  });
   els.hudSecret?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -977,63 +1031,114 @@ function bindEvents() {
     if (event.key === "Escape" && els.systemPicker?.classList.contains("is-open")) {
       event.preventDefault();
       setSystemPickerOpen(false);
+      releaseUiFocus();
       return;
     }
 
-    if (event.target?.closest?.("button, input, select, textarea, a")) return;
+    // Don't steal typing from real text fields.
+    if (event.target?.closest?.("input, select, textarea, [contenteditable='true']")) return;
 
-    if (
-      event.key === "Escape" &&
-      els.shell.classList.contains("hud-unlocked") &&
-      !state.dissect.active &&
-      !state.tour.active &&
-      !els.questionView?.classList.contains("is-active")
-    ) {
-      event.preventDefault();
-      setHudControlsVisible(false);
+    if (event.key === "Escape") {
+      if (state.dissect.active) {
+        event.preventDefault();
+        closeDissectPage();
+        releaseUiFocus();
+        return;
+      }
+      if (els.questionView?.classList.contains("is-active") || state.tour.active) {
+        event.preventDefault();
+        exitToQGrid();
+        releaseUiFocus();
+        return;
+      }
+      if (els.shell.classList.contains("hud-unlocked") && els.homeView?.classList.contains("is-active")) {
+        event.preventDefault();
+        setHudControlsVisible(false);
+        releaseUiFocus();
+        return;
+      }
       return;
+    }
+
+    const isArrow =
+      event.key === "ArrowRight" ||
+      event.key === "ArrowDown" ||
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowUp";
+
+    // Category/system menus steal focus — close them and free the keyboard.
+    if (isArrow && els.systemPicker?.classList.contains("is-open")) {
+      setSystemPickerOpen(false);
+      releaseUiFocus();
     }
 
     if (state.dissect.active) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeDissectPage();
-        return;
-      }
       if (event.key === "ArrowRight" || event.key === "ArrowDown") {
         event.preventDefault();
         advanceDissect();
+        releaseUiFocus();
         return;
       }
       if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
         event.preventDefault();
         retreatDissect();
+        releaseUiFocus();
       }
-      return;
-    }
-
-    if (event.key === "Escape") {
-      if (!state.tour.active && !els.questionView?.classList.contains("is-active")) return;
-      event.preventDefault();
-      resetTour();
-      returnHome();
       return;
     }
 
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
       event.preventDefault();
       advanceTour();
+      releaseUiFocus();
       return;
     }
 
     if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
       event.preventDefault();
       retreatTour();
+      releaseUiFocus();
     }
   });
   window.addEventListener("resize", () => {
     scheduleFitQuestionLayout();
   });
+}
+
+function releaseUiFocus() {
+  const active = document.activeElement;
+  if (!active || active === document.body || active === document.documentElement) return;
+  if (typeof active.blur === "function") active.blur();
+  // Keep keyboard ownership on the page after category/system UI clicks.
+  if (document.body && typeof document.body.focus === "function") {
+    try {
+      document.body.setAttribute("tabindex", "-1");
+      document.body.focus({ preventScroll: true });
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function invalidateTour() {
+  state.tour.runId += 1;
+  state.tour.active = false;
+  state.tour.busy = false;
+  state.tour.ended = false;
+  state.tour.groups = [];
+  state.tour.groupIndex = 0;
+  state.tour.qIndex = 0;
+  els.shell?.classList.remove("in-tour", "morphing");
+  els.nodeTrack?.querySelectorAll(".process-node.is-tour-target, .process-node.is-tour-press, .process-node.is-warping").forEach((node) => {
+    node.classList.remove("is-tour-target", "is-tour-press", "is-warping");
+  });
+  els.categoryTabs?.querySelectorAll(".category-tab.is-tour-aim, .category-tab.is-tour-press, .category-tab.is-tour-settle").forEach((tab) => {
+    tab.classList.remove("is-tour-aim", "is-tour-press", "is-tour-settle");
+  });
+  if (els.variantToggle) {
+    els.variantToggle.classList.remove("is-flipping");
+    els.variantToggle.disabled = false;
+  }
 }
 
 function setHudControlsVisible(visible) {
@@ -1506,15 +1611,7 @@ function wait(ms) {
 
 function resetTour() {
   const wasActive = state.tour.active;
-  state.tour.active = false;
-  state.tour.busy = false;
-  state.tour.groups = [];
-  state.tour.groupIndex = 0;
-  state.tour.qIndex = 0;
-  els.shell?.classList.remove("in-tour");
-  els.nodeTrack?.querySelectorAll(".process-node.is-tour-target").forEach((node) => {
-    node.classList.remove("is-tour-target");
-  });
+  invalidateTour();
   // Only restore Day 0 art when the intro tour fully ends on home — never mid-transition.
   if (
     wasActive &&
@@ -1692,8 +1789,12 @@ async function enterTourGroup({ fromQuestion = false, qIndex = 0 } = {}) {
     resetTour();
     showView("home");
     if (state.system === "Day 0") restoreSystemBackground(true);
+    releaseUiFocus();
     return;
   }
+
+  const runId = state.tour.runId;
+  const stillCurrent = () => state.tour.runId === runId && state.tour.active;
 
   const startIndex = Math.max(0, Math.min(qIndex, group.questions.length - 1));
   const leadQuestion = group.questions[startIndex];
@@ -1709,6 +1810,7 @@ async function enterTourGroup({ fromQuestion = false, qIndex = 0 } = {}) {
       renderCategories();
       await wait(220);
     }
+    if (!stillCurrent()) return;
 
     // Day 0: preview the theme background while aiming the category/process.
     applyDay0Theme(leadQuestion, true);
@@ -1717,12 +1819,14 @@ async function enterTourGroup({ fromQuestion = false, qIndex = 0 } = {}) {
 
     // Always animate subcategory press before the main process node.
     await animateSelectCategory(group.category);
+    if (!stillCurrent()) return;
 
     if (variantChanged) await animateFlipToVariant(group.variant);
     else {
       state.variant = group.variant;
       updateVariantLabels();
     }
+    if (!stillCurrent()) return;
 
     state.process = group.process;
     state.tour.qIndex = startIndex;
@@ -1732,6 +1836,7 @@ async function enterTourGroup({ fromQuestion = false, qIndex = 0 } = {}) {
     renderNodes();
 
     const node = await animatePressProcessNode(group.process);
+    if (!stillCurrent()) return;
     if (!node) {
       syncStateToTourGroup(group, startIndex);
       showView("question");
@@ -1741,18 +1846,23 @@ async function enterTourGroup({ fromQuestion = false, qIndex = 0 } = {}) {
 
     await morphToQuestionAsync(node, {
       beforeShow: () => {
+        if (!stillCurrent()) return;
         syncStateToTourGroup(group, startIndex);
       },
     });
   } finally {
-    state.tour.busy = false;
+    if (state.tour.runId === runId) state.tour.busy = false;
+    releaseUiFocus();
   }
 }
 
 function startTourForCurrentSystem() {
   const groups = buildTourGroups(state.system);
   if (!groups.length) return false;
+  state.tour.runId += 1;
   state.tour.active = true;
+  state.tour.busy = false;
+  state.tour.ended = false;
   state.tour.groups = groups;
   state.tour.groupIndex = 0;
   state.tour.qIndex = 0;
@@ -1761,6 +1871,8 @@ function startTourForCurrentSystem() {
 
 function advanceTour() {
   if (state.dissect.active || state.tour.busy) return;
+  if (state.tour.active && state.tour.ended) return;
+  if (els.systemPicker?.classList.contains("is-open")) setSystemPickerOpen(false);
 
   if (!state.tour.active) {
     if (!els.homeView?.classList.contains("is-active")) {
@@ -1801,9 +1913,9 @@ function advanceTour() {
 
     const nextIndex = state.tour.groupIndex + 1;
     if (nextIndex >= state.tour.groups.length) {
-      resetTour();
-      showView("home");
-      if (state.system === "Day 0") restoreSystemBackground(true);
+      // End of this system's question flow — stay on the last question.
+      // Esc returns to the QGrid home with the system title.
+      state.tour.ended = true;
       return;
     }
 
@@ -2024,6 +2136,26 @@ function returnHome() {
   }
   showView("home");
   if (state.system === "Day 0") restoreSystemBackground(true);
+}
+
+function exitToQGrid() {
+  if (state.dissect.active) {
+    closeDissectPage();
+    return;
+  }
+  resetTour();
+  state.category = null;
+  state.selectedAnswer = null;
+  state.answerVisible = false;
+  state.questionIndex = 0;
+  if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
+  setSystemBackground(true);
+  renderNodes();
+  renderCategories();
+  syncSystemPicker();
+  showView("home");
+  if (state.system === "Day 0") restoreSystemBackground(true);
+  releaseUiFocus();
 }
 
 function showView(view, options = {}) {
@@ -2293,7 +2425,9 @@ function moveQuestion(delta) {
   if (state.dissect.active) return;
   const questions = filteredQuestions();
   if (!questions.length) return;
-  state.questionIndex = (state.questionIndex + delta + questions.length) % questions.length;
+  const nextIndex = state.questionIndex + delta;
+  if (nextIndex < 0 || nextIndex >= questions.length) return;
+  state.questionIndex = nextIndex;
   state.selectedAnswer = null;
   state.answerVisible = false;
   renderQuestion();
@@ -2335,27 +2469,8 @@ async function importQuestions(event) {
 
     incoming = incoming.filter((question) => question.stem);
     if (!incoming.length) throw new Error("No valid questions found in that file.");
-    incoming.sort(compareQuestionOrder);
 
-    state.questions = sortQuestionBank(mergeQuestionBank(state.questions, incoming));
-    state.answerVisible = false;
-    resetTour();
-
-    const firstImported = incoming[0];
-    if (firstImported?.system && systems.includes(firstImported.system)) {
-      state.system = firstImported.system;
-      setSystemBackground(true);
-      if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
-      syncSystemPicker();
-    }
-
-    selectFirstAvailable(true, {
-      lockSystem: true,
-      lockCategory: true,
-      preferCategory: null,
-      preferProcess: normalized(firstImported?.process || "assess"),
-    });
-    showView("home");
+    applyImportedBank(incoming, file.name, { persist: true });
   } catch (error) {
     alert(error.message);
   } finally {
@@ -2363,10 +2478,138 @@ async function importQuestions(event) {
   }
 }
 
-function mergeQuestionBank(existing, incoming) {
-  const touchedSystems = new Set(incoming.map((question) => question.system).filter(Boolean));
-  const kept = existing.filter((question) => !touchedSystems.has(question.system));
-  return [...kept, ...incoming];
+function getDefaultQuestionBank() {
+  return [...day0Questions, ...sampleQuestions];
+}
+
+function applyImportedBank(incoming, fileName, options = {}) {
+  const persist = options.persist !== false;
+  const normalizedIncoming = sortQuestionBank(
+    (incoming || []).filter((question) => question?.stem && question.system !== "Day 0")
+  );
+  if (!normalizedIncoming.length) {
+    throw new Error("No valid questions found in that file.");
+  }
+
+  // Keep Day 0 tutorial bank, replace every other system from the sheet.
+  // This makes Cardiovascular and all other body systems follow the same Excel tour flow.
+  state.questions = sortQuestionBank([...day0Questions, ...normalizedIncoming]);
+  state.importedSheet.fileName = String(fileName || "Imported Sheet");
+  state.answerVisible = false;
+  state.selectedAnswer = null;
+  resetTour();
+
+  if (persist) saveImportedSheet(state.importedSheet.fileName, normalizedIncoming);
+
+  const firstImported = normalizedIncoming[0];
+  const preferredSystem =
+    firstImported?.system && systems.includes(firstImported.system)
+      ? firstImported.system
+      : systems.find((system) => system !== "Day 0" && normalizedIncoming.some((q) => q.system === system)) ||
+        state.system;
+
+  state.system = preferredSystem;
+  state.category = null;
+  state.process = normalized(firstImported?.process || "assess");
+  setSystemBackground(true);
+  if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
+  syncSystemPicker();
+  renderNodes();
+  renderCategories();
+  selectFirstAvailable(true, {
+    lockSystem: true,
+    lockCategory: true,
+    preferCategory: null,
+    preferProcess: state.process,
+  });
+  showView("home");
+  updateImportTipUI();
+}
+
+function clearImportedSheet() {
+  clearImportedSheetStorage();
+  state.importedSheet.fileName = null;
+  state.questions = getDefaultQuestionBank();
+  state.answerVisible = false;
+  state.selectedAnswer = null;
+  state.category = null;
+  state.system = "Cardiovascular";
+  state.process = "assess";
+  state.variant = "R";
+  resetTour();
+  updateVariantLabels();
+  setSystemBackground(true);
+  if (els.systemTitle) els.systemTitle.textContent = formatSystemTitle();
+  syncSystemPicker();
+  renderNodes();
+  renderCategories();
+  selectFirstAvailable(true, { lockCategory: true, preferCategory: null });
+  showView("home");
+  updateImportTipUI();
+}
+
+function saveImportedSheet(fileName, questions) {
+  try {
+    localStorage.setItem(
+      SHEET_STORAGE_KEY,
+      JSON.stringify({
+        fileName,
+        savedAt: Date.now(),
+        questions,
+      })
+    );
+  } catch (error) {
+    console.warn("Could not save imported sheet:", error);
+  }
+}
+
+function loadImportedSheet() {
+  try {
+    const raw = localStorage.getItem(SHEET_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data?.fileName || !Array.isArray(data.questions) || !data.questions.length) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function clearImportedSheetStorage() {
+  try {
+    localStorage.removeItem(SHEET_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function restoreImportedSheet() {
+  const saved = loadImportedSheet();
+  if (!saved) {
+    state.importedSheet.fileName = null;
+    updateImportTipUI();
+    return false;
+  }
+  try {
+    applyImportedBank(saved.questions, saved.fileName, { persist: false });
+    return true;
+  } catch {
+    clearImportedSheetStorage();
+    state.importedSheet.fileName = null;
+    state.questions = getDefaultQuestionBank();
+    updateImportTipUI();
+    return false;
+  }
+}
+
+function updateImportTipUI() {
+  const hasSheet = Boolean(state.importedSheet.fileName);
+  els.fileImportWrap?.classList.toggle("has-sheet", hasSheet);
+  if (els.fileImportTip) els.fileImportTip.hidden = !hasSheet;
+  if (els.fileImportName) {
+    els.fileImportName.textContent = hasSheet ? state.importedSheet.fileName : "";
+    els.fileImportName.title = hasSheet ? state.importedSheet.fileName : "";
+  }
 }
 
 function mapQgCategory(value) {
