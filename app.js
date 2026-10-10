@@ -778,6 +778,7 @@ const els = {
   fileImportTip: document.getElementById("fileImportTip"),
   fileImportName: document.getElementById("fileImportName"),
   fileImportClear: document.getElementById("fileImportClear"),
+  fileImportText: document.getElementById("fileImportText"),
   backHome: document.getElementById("backHome"),
   sideNumber: document.getElementById("sideNumber"),
   sideTotal: document.getElementById("sideTotal"),
@@ -1005,6 +1006,21 @@ function bindEvents() {
     releaseUiFocus();
   });
   els.sheetInput.addEventListener("change", importQuestions);
+  els.fileImportWrap?.addEventListener("pointerenter", () => {
+    if (!state.importedSheet.fileName) return;
+    openImportTip(true);
+  });
+  els.fileImportWrap?.addEventListener("pointerleave", () => {
+    openImportTip(false);
+  });
+  els.fileImportTip?.addEventListener("pointerenter", () => {
+    if (!state.importedSheet.fileName) return;
+    openImportTip(true);
+  });
+  els.fileImportTip?.addEventListener("pointerleave", (event) => {
+    if (els.fileImportWrap?.contains(event.relatedTarget)) return;
+    openImportTip(false);
+  });
   els.fileImportClear?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -2450,15 +2466,23 @@ async function importQuestions(event) {
   if (!file) return;
 
   const extension = file.name.split(".").pop().toLowerCase();
+  setImportLoading(true, "Importing…");
+  // Let the loading bar paint before heavy sync Excel work blocks the main thread.
+  await yieldToBrowser();
+
   try {
     let incoming = [];
     if (extension === "json") {
       const text = await file.text();
+      await yieldToBrowser();
       incoming = normalizeRows(JSON.parse(text));
     } else if (extension === "csv") {
-      incoming = normalizeRows(parseCsv(await file.text()));
+      const text = await file.text();
+      await yieldToBrowser();
+      incoming = normalizeRows(parseCsv(text));
     } else if (window.XLSX) {
       const buffer = await file.arrayBuffer();
+      await yieldToBrowser();
       const workbook = window.XLSX.read(buffer);
       incoming = workbook.SheetNames.flatMap((name) =>
         normalizeRows(window.XLSX.utils.sheet_to_json(workbook.Sheets[name]))
@@ -2470,12 +2494,33 @@ async function importQuestions(event) {
     incoming = incoming.filter((question) => question.stem);
     if (!incoming.length) throw new Error("No valid questions found in that file.");
 
+    setImportLoading(true, "Applying…");
+    await yieldToBrowser();
     applyImportedBank(incoming, file.name, { persist: true });
   } catch (error) {
     alert(error.message);
   } finally {
     event.target.value = "";
+    setImportLoading(false);
   }
+}
+
+function yieldToBrowser() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      window.setTimeout(resolve, 0);
+    });
+  });
+}
+
+function setImportLoading(isLoading, labelText = "Import Sheet") {
+  els.fileImportWrap?.classList.toggle("is-loading", Boolean(isLoading));
+  if (els.sheetInput) els.sheetInput.disabled = Boolean(isLoading);
+  if (els.fileImportClear) els.fileImportClear.disabled = Boolean(isLoading);
+  if (els.fileImportText) {
+    els.fileImportText.textContent = isLoading ? labelText : "Import Sheet";
+  }
+  els.fileImportWrap?.setAttribute("aria-busy", String(Boolean(isLoading)));
 }
 
 function getDefaultQuestionBank() {
@@ -2624,12 +2669,28 @@ function updateImportTipUI() {
   }
 }
 
+function openImportTip(open) {
+  window.clearTimeout(openImportTip._timer);
+  if (!els.fileImportWrap?.classList.contains("has-sheet")) {
+    els.fileImportWrap?.classList.remove("is-tip-open");
+    return;
+  }
+  if (open) {
+    els.fileImportWrap.classList.add("is-tip-open");
+    return;
+  }
+  // Small delay so moving onto the filename / X does not collapse the tip.
+  openImportTip._timer = window.setTimeout(() => {
+    els.fileImportWrap?.classList.remove("is-tip-open");
+  }, 180);
+}
+
 function flashImportTip() {
   if (!els.fileImportWrap?.classList.contains("has-sheet")) return;
-  els.fileImportWrap.classList.add("is-tip-open");
+  openImportTip(true);
   window.clearTimeout(flashImportTip._timer);
   flashImportTip._timer = window.setTimeout(() => {
-    els.fileImportWrap?.classList.remove("is-tip-open");
+    if (!els.fileImportWrap?.matches(":hover")) openImportTip(false);
   }, 2400);
 }
 
