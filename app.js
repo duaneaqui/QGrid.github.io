@@ -2524,6 +2524,7 @@ function applyImportedBank(incoming, fileName, options = {}) {
   });
   showView("home");
   updateImportTipUI();
+  flashImportTip();
 }
 
 function clearImportedSheet() {
@@ -2592,6 +2593,7 @@ function restoreImportedSheet() {
   }
   try {
     applyImportedBank(saved.questions, saved.fileName, { persist: false });
+    flashImportTip();
     return true;
   } catch {
     clearImportedSheetStorage();
@@ -2605,11 +2607,30 @@ function restoreImportedSheet() {
 function updateImportTipUI() {
   const hasSheet = Boolean(state.importedSheet.fileName);
   els.fileImportWrap?.classList.toggle("has-sheet", hasSheet);
-  if (els.fileImportTip) els.fileImportTip.hidden = !hasSheet;
+  if (!hasSheet) els.fileImportWrap?.classList.remove("is-tip-open");
+  if (els.fileImportTip) {
+    els.fileImportTip.hidden = !hasSheet;
+    els.fileImportTip.setAttribute("aria-hidden", String(!hasSheet));
+  }
   if (els.fileImportName) {
     els.fileImportName.textContent = hasSheet ? state.importedSheet.fileName : "";
     els.fileImportName.title = hasSheet ? state.importedSheet.fileName : "";
   }
+  if (els.sheetInput) {
+    els.sheetInput.setAttribute(
+      "aria-label",
+      hasSheet ? `Replace imported sheet (${state.importedSheet.fileName})` : "Import Sheet"
+    );
+  }
+}
+
+function flashImportTip() {
+  if (!els.fileImportWrap?.classList.contains("has-sheet")) return;
+  els.fileImportWrap.classList.add("is-tip-open");
+  window.clearTimeout(flashImportTip._timer);
+  flashImportTip._timer = window.setTimeout(() => {
+    els.fileImportWrap?.classList.remove("is-tip-open");
+  }, 2400);
 }
 
 function mapQgCategory(value) {
